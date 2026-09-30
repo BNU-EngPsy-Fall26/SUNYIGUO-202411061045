@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>夜行者 NIGHT PILOT · 自动驾驶感知检测实验室</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <header>
+    <div class="brand">
+      <b>NIGHT&nbsp;PILOT</b> 夜行者
+      <small>SDT PERCEPTION LAB</small>
+    </div>
+    <div class="status-leds">
+      <span class="led"><i></i>CAM ONLINE</span>
+      <span class="led amber"><i></i>NIGHT TEST</span>
+    </div>
+    <nav>
+      <a class="nav-link current" data-target="screen-briefing" href="#">任务简报</a>
+      <a class="nav-link" data-target="screen-lab" href="#">概念实验室</a>
+      <a class="nav-link" data-target="screen-history" href="#">战绩榜</a>
+      <button id="btnSound" type="button">音效 ON</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ============ 页面一：任务简报 ============ -->
+    <section id="screen-briefing" class="screen active">
+      <div class="kicker">Mission Briefing · 信号检测论交互实验</div>
+      <div class="title-row">
+        <!-- 自动驾驶汽车图标：车身 + 车轮 + 车头雷达波 -->
+        <svg class="car-icon" viewBox="0 0 78 46" fill="none" aria-hidden="true">
+          <path d="M8 32 L13 21 Q14.5 17.5 19 16.5 L35 13 Q39.5 12 43 14.5 L52 20.5 Q58 21.5 60 25 L62 32"
+                stroke="#22d3ee" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+          <line x1="8" y1="32" x2="62" y2="32" stroke="#22d3ee" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="21" cy="35" r="5.5" stroke="#fbbf24" stroke-width="2.6"/>
+          <circle cx="50" cy="35" r="5.5" stroke="#fbbf24" stroke-width="2.6"/>
+          <path d="M66 14 Q71 21 66 28" stroke="#fbbf24" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M71 10 Q78 21 71 32" stroke="#fbbf24" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+        </svg>
+        <h1>你是感知系统的<span class="accent">最后一道保险</span></h1>
+      </div>
+      <p class="sub">
+        深夜 23:47，自动驾驶测试场。车载摄像头每隔几秒回传一段不到 1 秒的夜间画面——
+        雨幕、雾团、眩光里，可能藏着一个正在过马路的行人。
+        你是今晚的感知系统安全标定员：在每次画面闪现后，抢在算法之前做出判断——
+        <b>刚才，有没有行人？</b>
+      </p>
+
+      <div class="boot-log" id="bootLog"></div>
+
+      <div class="panel">
+        <h2>任务参数定义</h2>
+        <div class="param-grid">
+          <div class="param-cell">
+            <span class="tag c-cyan">信号 Signal</span>
+            <p>画面中真实出现的<b>行人剪影</b>。先验概率 <b>P(S) = 0.3</b>——深夜园区行人稀少，每 10 次画面里约 3 次有行人。</p>
+          </div>
+          <div class="param-cell">
+            <span class="tag c-amber">噪音 Noise</span>
+            <p>其余一切"有点像人"的东西：<b>飘过的塑料袋、垃圾桶、反光路牌</b>、灌木阴影与眩光。它们在低能见度下极易误判。</p>
+          </div>
+          <div class="param-cell">
+            <span class="tag c-mint">击中 Hit · 正确拒斥 CR</span>
+            <p>有行人→你报警：车辆制动，<b>避免事故</b>。无行人→你放行：车辆<b>顺利通过</b>。</p>
+          </div>
+          <div class="param-cell">
+            <span class="tag c-red">漏报 Miss · 误报 FA</span>
+            <p>有行人→你放行：<b>撞人事故</b>（代价最高）。无行人→你报警：<b>幽灵刹车</b>（后车追尾风险）。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="label">选择今夜天气（快捷预设）或拖动滑块自定义难度</div>
+      <div class="weather-row">
+        <div class="weather-card" data-weather="clear" data-d="2.5">
+          <!-- 晴夜图标：弯月 + 星 -->
+          <svg class="w-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M20 5 A10 10 0 1 0 27 22 A8 8 0 0 1 20 5 Z" stroke="#34d399" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M24 4 L25 7 L28 8 L25 9 L24 12 L23 9 L20 8 L23 7 Z" fill="#34d399"/>
+          </svg>
+          <h3>晴朗深夜</h3>
+          <div class="w-d">d' = 2.5 · 简单</div>
+          <p>能见度良好，行人轮廓清晰——信号与噪音分得很开，几乎不会出错。</p>
+        </div>
+        <div class="weather-card selected" data-weather="rain" data-d="1.5">
+          <!-- 雨夜图标：云 + 雨滴 -->
+          <svg class="w-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M9 15 A6 6 0 0 1 20 11 A5 5 0 0 1 25 16 Q25 19 22 19 L10 19 Q7 19 7 16.5 Q7 14.5 9 15 Z"
+                  stroke="#fbbf24" stroke-width="2.2" stroke-linejoin="round"/>
+            <line x1="11" y1="23" x2="9.5" y2="27" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="17" y1="23" x2="15.5" y2="27" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="23" y1="23" x2="21.5" y2="27" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+          <h3>雨夜</h3>
+          <div class="w-d">d' = 1.5 · 中等</div>
+          <p>雨丝与路面反光干扰视线——行人开始淹没在噪音里，需要集中注意。</p>
+        </div>
+        <div class="weather-card" data-weather="fog" data-d="0.8">
+          <!-- 浓雾图标：三条雾霭横线 -->
+          <svg class="w-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M4 10 Q10 8 16 10 Q22 12 28 10" stroke="#f87171" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M4 17 Q10 15 16 17 Q22 19 28 17" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" opacity="0.75"/>
+            <path d="M4 24 Q10 22 16 24 Q22 26 28 24" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" opacity="0.5"/>
+          </svg>
+          <h3>浓雾</h3>
+          <div class="w-d">d' = 0.8 · 困难</div>
+          <p>白雾吞掉大部分对比度——两个分布严重重叠，你必须在几乎看不清时下判断。</p>
+        </div>
+      </div>
+
+      <div class="panel custom-diff">
+        <div class="cd-head">
+          <span class="label" style="margin-bottom:0;">自定义难度 · 信号强度 d'</span>
+          <span class="cd-val" id="customDVal">1.5</span>
+        </div>
+        <input type="range" id="sliderDiff" min="0.5" max="3.5" step="0.1" value="1.5">
+        <div class="cd-scale"><span>0.5 极难</span><span>1.5 中等</span><span>3.5 极易</span></div>
+        <p class="cd-explain" id="dExplain"></p>
+      </div>
+
+      <button class="btn btn-primary" id="btnStart" type="button">开始标定 · 24 次判断 →</button>
+      <p class="game-hint big-hint">每次画面仅闪现约 <b>0.7 ~ 1 秒</b> · 按 <span class="key">F</span>（有行人）/ <span class="key">J</span>（无行人）或点击按钮作答</p>
+    </section>
+
+    <!-- ============ 页面二：检测游戏 ============ -->
+    <section id="screen-game" class="screen">
+      <div class="hud">
+        <span class="rec"><i></i>LIVE</span>
+        <span>天气<b id="hudWeather">—</b></span>
+        <span>进度<b id="hudTrial">TRIAL 01 / 24</b></span>
+        <span>击中<b id="hudHit">0</b></span>
+        <span>误报<b id="hudFA">0</b></span>
+        <span class="hud-quit"><button id="btnQuit" type="button">中止测试</button></span>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="880" height="430"></canvas>
+      </div>
+
+      <div class="response-row">
+        <button class="resp-btn" id="btnYes" type="button" disabled>
+          <kbd>F</kbd>
+          有行人 · 制动
+          <small>画面中出现行人剪影</small>
+        </button>
+        <button class="resp-btn" id="btnNo" type="button" disabled>
+          <kbd>J</kbd>
+          无行人 · 通过
+          <small>只是杂物 / 反光 / 阴影</small>
+        </button>
+      </div>
+      <p class="game-hint">画面闪现结束后按钮才会解锁 —— 凭第一印象作答，不要犹豫</p>
+    </section>
+
+    <!-- ============ 页面三：标定报告（结果） ============ -->
+    <section id="screen-results" class="screen">
+      <div class="kicker">Calibration Report · 标定报告</div>
+      <h1>你的检测成绩</h1>
+      <p class="sub" id="resWeather">—</p>
+
+      <div class="results-cols">
+        <div>
+          <div class="panel">
+            <h2>混淆矩阵</h2>
+            <table class="matrix">
+              <tr>
+                <th class="corner"></th>
+                <th>实际有行人</th>
+                <th>实际无行人</th>
+              </tr>
+              <tr>
+                <th>你说「有」</th>
+                <td class="cell-hit"><span class="cell-name">击中 Hit · 成功避险</span><span class="cell-num" id="cellH">0</span></td>
+                <td class="cell-fa"><span class="cell-name">误报 FA · 幽灵刹车</span><span class="cell-num" id="cellFA">0</span></td>
+              </tr>
+              <tr>
+                <th>你说「无」</th>
+                <td class="cell-miss"><span class="cell-name">漏报 Miss · 酿成事故</span><span class="cell-num" id="cellM">0</span></td>
+                <td class="cell-cr"><span class="cell-name">正确拒斥 CR · 顺利通过</span><span class="cell-num" id="cellCR">0</span></td>
+              </tr>
+            </table>
+
+            <div class="metrics">
+              <div class="metric"><div class="m-label">击中率 P(H)</div><div class="m-value" id="mPHit">—</div></div>
+              <div class="metric"><div class="m-label">误报率 P(FA)</div><div class="m-value" id="mPFA">—</div></div>
+              <div class="metric hl"><div class="m-label">敏感性 d'</div><div class="m-value" id="mD">—</div></div>
+              <div class="metric hl"><div class="m-label">判断标准 c</div><div class="m-value" id="mC">—</div></div>
+              <div class="metric"><div class="m-label">准确率</div><div class="m-value" id="mAcc">—</div></div>
+            </div>
+
+            <div class="note-card">
+              <div class="label">为什么光看"准确率"不够？</div>
+              <p id="trapText"></p>
+            </div>
+            <div class="note-card" style="border-left-color: var(--cyan);">
+              <div class="label" style="color: var(--cyan);">你的判断风格</div>
+              <p id="cInterpret"></p>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" id="btnAgain" type="button">同难度再测一局</button>
+            <button class="btn btn-ghost" id="btnChange" type="button">换个难度</button>
+            <button class="btn btn-ghost" id="btnToLab" type="button">进概念实验室验证 →</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>我的 ROC 定位</h2>
+          <canvas class="chart" id="miniRoc" width="340" height="340"></canvas>
+          <div class="legend">
+            <span><i style="background:#34d399"></i>晴朗 d'=2.5</span>
+            <span><i style="background:#fbbf24"></i>雨夜 d'=1.5</span>
+            <span><i style="background:#f87171"></i>浓雾 d'=0.8</span>
+            <span><i style="background:#a78bfa"></i>自定义</span>
+          </div>
+          <p class="lab-caption">
+            三条曲线是三种预设天气的<b>理论 ROC</b>；圆点是你<b>每一局的实测 (P(FA), P(Hit))</b>。
+            难度不变时，你的点应当沿着同一条曲线滑动——移动的是你的标准 c，而不是你的能力 d'。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 页面四：概念实验室 ============ -->
+    <section id="screen-lab" class="screen">
+      <div class="kicker">Concept Lab · 概念实验室</div>
+      <h1>现在，你来当实验者</h1>
+      <p class="sub">
+        拖动滑块，观察 <b>d'</b>（分辨能力）与 <b>c</b>（判断标准）如何分别改变
+        两条分布、混淆矩阵的四块面积、以及 ROC 曲线上的操作点。
+      </p>
+
+      <div class="panel">
+        <div class="lab-controls">
+          <div class="slider-block">
+            <span class="label">敏感性 d'（两个分布的距离）</span><span class="val" id="valD">1.5</span>
+            <input type="range" id="sliderD" min="0" max="3.5" step="0.1" value="1.5">
+            <div class="slider-hint">d' 是"能力/环境"属性：天气、设备、经验决定它——标准再变它也不变。</div>
+          </div>
+          <div class="slider-block">
+            <span class="label">判断标准 c（报警门槛）</span><span class="val" id="valC">+0.00</span>
+            <input type="range" id="sliderC" min="-2" max="2" step="0.05" value="0">
+            <div class="slider-hint">c &gt; 0 保守（很确定才报警）；c &lt; 0 宽松（稍有可疑就报警）。</div>
+          </div>
+          <div class="slider-block">
+            <span class="label">信号分布离散度 σ(SN)</span><span class="val" id="valS">1.0</span>
+            <input type="range" id="sliderS" min="0.5" max="2" step="0.1" value="1">
+            <div class="slider-hint">等方差时 σ(SN)=1，z-ROC 斜率为 1；不等方差时斜率 = σ(N)/σ(SN)。</div>
+          </div>
+        </div>
+
+        <div class="lab-grid">
+          <div>
+            <div class="label">双分布与判定标准</div>
+            <canvas class="chart" id="distCanvas" width="540" height="300"></canvas>
+            <div class="legend">
+              <span><i style="background:#34d399"></i>击中 H</span>
+              <span><i style="background:#f87171"></i>漏报 M</span>
+              <span><i style="background:#fbbf24"></i>误报 FA</span>
+              <span><i style="background:#22d3ee"></i>正确拒斥 CR</span>
+            </div>
+          </div>
+          <div>
+            <div class="label">ROC 曲线</div>
+            <canvas class="chart" id="rocCanvas" width="360" height="360"></canvas>
+            <label class="chk-row">
+              <input type="checkbox" id="chkOverlay" checked>
+              叠加我的历史实测点（多局对比）
+            </label>
+          </div>
+          <div>
+            <div class="label">z 变换 ROC</div>
+            <canvas class="chart" id="zrocCanvas" width="360" height="360"></canvas>
+            <p class="lab-caption" style="margin-top:8px;">
+              坐标轴转为 z 分数后 ROC 变为<b>直线</b>：截距 = d'/σ(SN)，斜率 = σ(N)/σ(SN)。
+            </p>
+          </div>
+        </div>
+
+        <div class="readouts">
+          <div class="readout"><div class="r-label">P(Hit)</div><div class="r-value" id="labPHit">—</div></div>
+          <div class="readout"><div class="r-label">P(FA)</div><div class="r-value" id="labPFA">—</div></div>
+          <div class="readout"><div class="r-label">β（似然比标准）</div><div class="r-value" id="labBeta">—</div></div>
+          <div class="readout"><div class="r-label">AUC（曲线下面积）</div><div class="r-value" id="labAUC">—</div></div>
+        </div>
+
+        <p class="lab-caption">
+          <b>试试看：</b>固定 d' 不动，只拖 c —— ROC 曲线形状不变，琥珀色的操作点沿着同一条曲线滑动；
+          这就是"同一能力、不同标准"。再拖 d' —— 整条曲线鼓起或塌下，AUC 改变，
+          这才是"能力变了"。d' 与 c 的分离，正是信号检测论对工程心理学的核心贡献。
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 页面五：战绩榜 ============ -->
+    <section id="screen-history" class="screen">
+      <div class="kicker">Records · 战绩榜</div>
+      <h1>多局数据对比</h1>
+      <p class="sub">
+        每一局成绩都会保存在本浏览器中（localStorage）。用不同难度各测一局，
+        对比你的 d' 如何随环境变化、c 如何随你的心态漂移。
+      </p>
+
+      <div class="panel">
+        <h2>历史最佳（排行榜）</h2>
+        <div id="leaderboard"></div>
+      </div>
+
+      <div class="panel">
+        <h2>全部历史局</h2>
+        <div class="empty-state" id="historyEmpty">
+          还没有任何测试记录。<br>回到「任务简报」，开始你的第一局标定。
+        </div>
+        <table class="history">
+          <thead>
+            <tr>
+              <th>时间</th><th>难度</th><th>H/M/FA/CR</th>
+              <th>P(H)</th><th>P(FA)</th><th>d'</th><th>c</th><th>准确率</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="btnClear" type="button">清空全部记录</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>NIGHT PILOT · 信号检测论交互实验 · 2026</span>
+  </footer>
+
+  <script src="js/math.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/lab.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
